@@ -107,8 +107,8 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dbmanager.h" />
-    <ClInclude Include="fileindexer.h" />
+    <QtMoc Include="dbmanager.h" />
+    <QtMoc Include="fileindexer.h" />
     <ClInclude Include="searchengine.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>

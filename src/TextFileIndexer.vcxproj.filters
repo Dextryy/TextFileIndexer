@@ -51,6 +51,12 @@
     <QtMoc Include="mainwindow.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="fileindexer.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="dbmanager.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="mainwindow.ui">
@@ -58,13 +64,7 @@
     </QtUic>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="fileindexer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="searchengine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dbmanager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="utils.h">
