@@ -7,7 +7,7 @@
 #include <QDateTime>
 #include <QDebug>
 
-// маска
+// РјР°СЃРєР°
 QString SearchEngine::wildcardToLike(QString mask) {
     if (mask.isEmpty()) return mask;
     mask.replace('%', "\\%").replace('_', "\\_");
@@ -15,26 +15,26 @@ QString SearchEngine::wildcardToLike(QString mask) {
     return mask;
 }
 
-// чтение конкретной строки файла
+// С‡С‚РµРЅРёРµ РєРѕРЅРєСЂРµС‚РЅРѕР№ СЃС‚СЂРѕРєРё С„Р°Р№Р»Р°
 QString SearchEngine::readLine(const QString& path, int lineNo) {
     QFile f(path); 
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
     QTextStream in(&f);
-    in.setCodec("UTF-8"); // кириллица/UTF-8
-    for (int i = 1; i < lineNo && !in.atEnd(); ++i) in.readLine(); // пролистываем N-1 строк
-    return in.atEnd() ? QString() : in.readLine(); // возвращаем нужную строку (или пусто)
+    in.setCodec("UTF-8"); // РєРёСЂРёР»Р»РёС†Р°/UTF-8
+    for (int i = 1; i < lineNo && !in.atEnd(); ++i) in.readLine(); // РїСЂРѕР»РёСЃС‚С‹РІР°РµРј N-1 СЃС‚СЂРѕРє
+    return in.atEnd() ? QString() : in.readLine(); // РІРѕР·РІСЂР°С‰Р°РµРј РЅСѓР¶РЅСѓСЋ СЃС‚СЂРѕРєСѓ (РёР»Рё РїСѓСЃС‚Рѕ)
 }
 
-// добавление фильтров к SQL
+// РґРѕР±Р°РІР»РµРЅРёРµ С„РёР»СЊС‚СЂРѕРІ Рє SQL
 void SearchEngine::appendFilters(QString& sql, const QString& alias,
     const QString& mask, const QDate& from, const QDate& to)
 {
-    if (!mask.isEmpty()) sql += QString("AND %1.path LIKE :mask ESCAPE '\\' ").arg(alias); // фильтр по имени
-    if (from.isValid())  sql += QString("AND %1.modified >= :from ").arg(alias); // фильтр "с даты"
-    if (to.isValid())    sql += QString("AND %1.modified <= :to ").arg(alias); // фильтр "по дату"
+    if (!mask.isEmpty()) sql += QString("AND %1.path LIKE :mask ESCAPE '\\' ").arg(alias); // С„РёР»СЊС‚СЂ РїРѕ РёРјРµРЅРё
+    if (from.isValid())  sql += QString("AND %1.modified >= :from ").arg(alias); // С„РёР»СЊС‚СЂ "СЃ РґР°С‚С‹"
+    if (to.isValid())    sql += QString("AND %1.modified <= :to ").arg(alias); // С„РёР»СЊС‚СЂ "РїРѕ РґР°С‚Сѓ"
 }
 
-// привязка значений фильтров
+// РїСЂРёРІСЏР·РєР° Р·РЅР°С‡РµРЅРёР№ С„РёР»СЊС‚СЂРѕРІ
 void SearchEngine::bindFilters(QSqlQuery& q, const QString& mask,
     const QDate& from, const QDate& to)
 {
@@ -43,15 +43,15 @@ void SearchEngine::bindFilters(QSqlQuery& q, const QString& mask,
     if (to.isValid())    q.bindValue(":to", QDateTime(to, QTime(23, 59, 59)).toString(Qt::ISODate));
 }
 
-// поиск по слову
+// РїРѕРёСЃРє РїРѕ СЃР»РѕРІСѓ
 QVector<SearchResult> SearchEngine::searchWord(DBManager* db,
     const QString& query, bool caseSensitive,
     const QString& fileMask, const QDate& from, const QDate& to)
 {
-    QVector<SearchResult> out; // собираем результаты
+    QVector<SearchResult> out; // СЃРѕР±РёСЂР°РµРј СЂРµР·СѓР»СЊС‚Р°С‚С‹
     if (!db || query.isEmpty()) return out; 
-    const QString word = caseSensitive ? query : query.toLower(); // готовим слово с учётом регистра
-    QString sql = // присоединение по индексным таблицам
+    const QString word = caseSensitive ? query : query.toLower(); // РіРѕС‚РѕРІРёРј СЃР»РѕРІРѕ СЃ СѓС‡С‘С‚РѕРј СЂРµРіРёСЃС‚СЂР°
+    QString sql = // РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ РїРѕ РёРЅРґРµРєСЃРЅС‹Рј С‚Р°Р±Р»РёС†Р°Рј
         "SELECT f.path, f.modified, f.size, wi.line_numbers "
         "FROM WordIndex wi "
         "JOIN Words w ON w.id = wi.word_id "
@@ -59,63 +59,63 @@ QVector<SearchResult> SearchEngine::searchWord(DBManager* db,
         "WHERE w.word = :word ";
     appendFilters(sql, "f", fileMask, from, to);
 
-    QSqlQuery q(db->database()); // готовим запрос
+    QSqlQuery q(db->database()); // РіРѕС‚РѕРІРёРј Р·Р°РїСЂРѕСЃ
     q.prepare(sql);
-    q.bindValue(":word", word); // привязка параметра :word
-    bindFilters(q, fileMask, from, to); // привязка :mask/:from/:to
-    if (!q.exec()) { qWarning() << q.lastError(); return out; } // если ошибка — отдаём пустой список
+    q.bindValue(":word", word); // РїСЂРёРІСЏР·РєР° РїР°СЂР°РјРµС‚СЂР° :word
+    bindFilters(q, fileMask, from, to); // РїСЂРёРІСЏР·РєР° :mask/:from/:to
+    if (!q.exec()) { qWarning() << q.lastError(); return out; } // РµСЃР»Рё РѕС€РёР±РєР° вЂ” РѕС‚РґР°С‘Рј РїСѓСЃС‚РѕР№ СЃРїРёСЃРѕРє
 
-    while (q.next()) { // идем по результатам
-        const QString path = q.value(0).toString(); // путь
-        const QString modified = q.value(1).toString(); // дата изменения 
-        const qint64  size = q.value(2).toLongLong(); // размер в байтах
-        const QString linesStr = q.value(3).toString(); // строка
+    while (q.next()) { // РёРґРµРј РїРѕ СЂРµР·СѓР»СЊС‚Р°С‚Р°Рј
+        const QString path = q.value(0).toString(); // РїСѓС‚СЊ
+        const QString modified = q.value(1).toString(); // РґР°С‚Р° РёР·РјРµРЅРµРЅРёСЏ 
+        const qint64  size = q.value(2).toLongLong(); // СЂР°Р·РјРµСЂ РІ Р±Р°Р№С‚Р°С…
+        const QString linesStr = q.value(3).toString(); // СЃС‚СЂРѕРєР°
 
-        const QStringList parts = linesStr.split(',', Qt::SkipEmptyParts); // разбиваем на номера
-        for (const QString& p : parts) { // для каждого номера строки
-            const int lineNo = p.toInt(); // переводим в int
-            const QString lineText = readLine(path, lineNo); // читаем конкретную строку
+        const QStringList parts = linesStr.split(',', Qt::SkipEmptyParts); // СЂР°Р·Р±РёРІР°РµРј РЅР° РЅРѕРјРµСЂР°
+        for (const QString& p : parts) { // РґР»СЏ РєР°Р¶РґРѕРіРѕ РЅРѕРјРµСЂР° СЃС‚СЂРѕРєРё
+            const int lineNo = p.toInt(); // РїРµСЂРµРІРѕРґРёРј РІ int
+            const QString lineText = readLine(path, lineNo); // С‡РёС‚Р°РµРј РєРѕРЅРєСЂРµС‚РЅСѓСЋ СЃС‚СЂРѕРєСѓ
             if (!lineText.isEmpty())
-                out.push_back({ path, lineNo, lineText, modified, size }); // добавляем результат
+                out.push_back({ path, lineNo, lineText, modified, size }); // РґРѕР±Р°РІР»СЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚
         }
     }
     return out;
 }
 
-// поиск по регулярному выражению
+// РїРѕРёСЃРє РїРѕ СЂРµРіСѓР»СЏСЂРЅРѕРјСѓ РІС‹СЂР°Р¶РµРЅРёСЋ
 QVector<SearchResult> SearchEngine::searchRegex(DBManager* db,
     const QString& pattern, bool caseSensitive,
     const QString& fileMask, const QDate& from, const QDate& to)
 {
     QVector<SearchResult> out;
-    if (!db || pattern.isEmpty()) return out; // без шаблона — нет поиска
+    if (!db || pattern.isEmpty()) return out; // Р±РµР· С€Р°Р±Р»РѕРЅР° вЂ” РЅРµС‚ РїРѕРёСЃРєР°
 
-    QString sql = "SELECT path, modified, size FROM Files WHERE 1=1 "; // берём список файлов
-    appendFilters(sql, "Files", fileMask, from, to); // ограничиваем по маске/датам
+    QString sql = "SELECT path, modified, size FROM Files WHERE 1=1 "; // Р±РµСЂС‘Рј СЃРїРёСЃРѕРє С„Р°Р№Р»РѕРІ
+    appendFilters(sql, "Files", fileMask, from, to); // РѕРіСЂР°РЅРёС‡РёРІР°РµРј РїРѕ РјР°СЃРєРµ/РґР°С‚Р°Рј
 
-    QSqlQuery q(db->database()); // запрос 
+    QSqlQuery q(db->database()); // Р·Р°РїСЂРѕСЃ 
     q.prepare(sql);
-    bindFilters(q, fileMask, from, to); // привязываем параметры
-    if (!q.exec()) { qWarning() << q.lastError(); return out; } // ошибка — пусто
+    bindFilters(q, fileMask, from, to); // РїСЂРёРІСЏР·С‹РІР°РµРј РїР°СЂР°РјРµС‚СЂС‹
+    if (!q.exec()) { qWarning() << q.lastError(); return out; } // РѕС€РёР±РєР° вЂ” РїСѓСЃС‚Рѕ
 
     QRegularExpression::PatternOptions opts = QRegularExpression::UseUnicodePropertiesOption;
     if (!caseSensitive) opts |= QRegularExpression::CaseInsensitiveOption; 
     
-    QRegularExpression re(pattern, opts); // компилируем паттерн
+    QRegularExpression re(pattern, opts); // РєРѕРјРїРёР»РёСЂСѓРµРј РїР°С‚С‚РµСЂРЅ
     while (q.next()) {
         const QString path = q.value(0).toString();
         const QString modified = q.value(1).toString();
         const qint64  size = q.value(2).toLongLong();
 
-        QFile f(path); // открываем файл
+        QFile f(path); // РѕС‚РєСЂС‹РІР°РµРј С„Р°Р№Р»
         if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
-        QTextStream in(&f); in.setCodec("UTF-8"); // кириллица/UTF-8
+        QTextStream in(&f); in.setCodec("UTF-8"); // РєРёСЂРёР»Р»РёС†Р°/UTF-8
 
         int lineNo = 0;
-        while (!in.atEnd()) { // читаем построчно
+        while (!in.atEnd()) { // С‡РёС‚Р°РµРј РїРѕСЃС‚СЂРѕС‡РЅРѕ
             const QString line = in.readLine(); ++lineNo;
-            if (re.match(line).hasMatch()) // если паттерн нашёл совпадение
-                out.push_back({ path, lineNo, line, modified, size }); // добавляем результат
+            if (re.match(line).hasMatch()) // РµСЃР»Рё РїР°С‚С‚РµСЂРЅ РЅР°С€С‘Р» СЃРѕРІРїР°РґРµРЅРёРµ
+                out.push_back({ path, lineNo, line, modified, size }); // РґРѕР±Р°РІР»СЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚
         }
     }
     return out;

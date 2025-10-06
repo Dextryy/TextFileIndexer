@@ -19,25 +19,25 @@ namespace {
 
 DBManager::DBManager(QObject* parent) : QObject(parent) {}
 
-//открытие и подготовка файла БД 
+//РѕС‚РєСЂС‹С‚РёРµ Рё РїРѕРґРіРѕС‚РѕРІРєР° С„Р°Р№Р»Р° Р‘Р” 
 bool DBManager::open(const QString& dbPath) {
-    m_db = QSqlDatabase::contains("app") // переиспользуем подключение "app", если уже есть
+    m_db = QSqlDatabase::contains("app") // РїРµСЂРµРёСЃРїРѕР»СЊР·СѓРµРј РїРѕРґРєР»СЋС‡РµРЅРёРµ "app", РµСЃР»Рё СѓР¶Рµ РµСЃС‚СЊ
         ? QSqlDatabase::database("app")
-        : QSqlDatabase::addDatabase("QSQLITE", "app"); // иначе создаём новое подключение SQLite
+        : QSqlDatabase::addDatabase("QSQLITE", "app"); // РёРЅР°С‡Рµ СЃРѕР·РґР°С‘Рј РЅРѕРІРѕРµ РїРѕРґРєР»СЋС‡РµРЅРёРµ SQLite
 
-    m_db.setDatabaseName(dbPath); // файл БД (создастся при первом открытии)
+    m_db.setDatabaseName(dbPath); // С„Р°Р№Р» Р‘Р” (СЃРѕР·РґР°СЃС‚СЃСЏ РїСЂРё РїРµСЂРІРѕРј РѕС‚РєСЂС‹С‚РёРё)
     if (!m_db.open()) { qWarning() << "SQLite open error:" << m_db.lastError(); return false; }
 
-    QSqlQuery pragma(m_db); // запрос для PRAGMA
-    pragma.exec("PRAGMA foreign_keys = ON;"); // включаем внешние ключи
+    QSqlQuery pragma(m_db); // Р·Р°РїСЂРѕСЃ РґР»СЏ PRAGMA
+    pragma.exec("PRAGMA foreign_keys = ON;"); // РІРєР»СЋС‡Р°РµРј РІРЅРµС€РЅРёРµ РєР»СЋС‡Рё
     return ensureSchema();
 }
 
-//создание таблиц
+//СЃРѕР·РґР°РЅРёРµ С‚Р°Р±Р»РёС†
 bool DBManager::ensureSchema() {
     QSqlQuery q(m_db);
 
-    q.prepare( // таблица Files: сведения о каждом файле
+    q.prepare( // С‚Р°Р±Р»РёС†Р° Files: СЃРІРµРґРµРЅРёСЏ Рѕ РєР°Р¶РґРѕРј С„Р°Р№Р»Рµ
         "CREATE TABLE IF NOT EXISTS Files ("
         " id INTEGER PRIMARY KEY AUTOINCREMENT,"
         " path TEXT NOT NULL UNIQUE,"
@@ -46,14 +46,14 @@ bool DBManager::ensureSchema() {
         " line_count INTEGER)"
     ); if (!execWarn(q)) return false;
 
-    q.prepare( // таблица Words: уникальное слово и его общий счётчик
+    q.prepare( // С‚Р°Р±Р»РёС†Р° Words: СѓРЅРёРєР°Р»СЊРЅРѕРµ СЃР»РѕРІРѕ Рё РµРіРѕ РѕР±С‰РёР№ СЃС‡С‘С‚С‡РёРє
         "CREATE TABLE IF NOT EXISTS Words (" 
         " id INTEGER PRIMARY KEY AUTOINCREMENT,"
         " word TEXT NOT NULL UNIQUE,"
         " occurrences INTEGER NOT NULL DEFAULT 0)"
     ); if (!execWarn(q)) return false;
 
-    q.prepare( // таблица WordIndex: связи слово—файл и список строк
+    q.prepare( // С‚Р°Р±Р»РёС†Р° WordIndex: СЃРІСЏР·Рё СЃР»РѕРІРѕвЂ”С„Р°Р№Р» Рё СЃРїРёСЃРѕРє СЃС‚СЂРѕРє
         "CREATE TABLE IF NOT EXISTS WordIndex ("
         " word_id INTEGER NOT NULL,"
         " file_id INTEGER NOT NULL,"
@@ -66,7 +66,7 @@ bool DBManager::ensureSchema() {
     return true;
 }
 
-//очистка трех таблиц
+//РѕС‡РёСЃС‚РєР° С‚СЂРµС… С‚Р°Р±Р»РёС†
 bool DBManager::clearAll() {
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM WordIndex"); if (!execWarn(q)) return false;
@@ -78,46 +78,46 @@ bool DBManager::clearAll() {
 
 int DBManager::upsertFile(const QString& path, qint64 size,
     const QDateTime& modified, int lineCount) {
-    int id = selectId("Files", "path", path); // пытаемся найти существующую запись
+    int id = selectId("Files", "path", path); // РїС‹С‚Р°РµРјСЃСЏ РЅР°Р№С‚Рё СЃСѓС‰РµСЃС‚РІСѓСЋС‰СѓСЋ Р·Р°РїРёСЃСЊ
     QSqlQuery q(m_db);
 
-    if (id < 0) { // // если нет — INSERT
+    if (id < 0) { // // РµСЃР»Рё РЅРµС‚ вЂ” INSERT
         q.prepare("INSERT INTO Files(path,size,modified,line_count)"
             " VALUES(:p,:s,:m,:lc)");
-        q.bindValue(":p", path); // связываем параметры (path, size, modified, lineCount)
+        q.bindValue(":p", path); // СЃРІСЏР·С‹РІР°РµРј РїР°СЂР°РјРµС‚СЂС‹ (path, size, modified, lineCount)
         q.bindValue(":s", size);
         q.bindValue(":m", modified.toString(Qt::ISODate));
         q.bindValue(":lc", lineCount);
-        if (!execWarn(q)) return -1; // при ошибке - лог и -1
-        return q.lastInsertId().toInt(); // возвращаем новый id
+        if (!execWarn(q)) return -1; // РїСЂРё РѕС€РёР±РєРµ - Р»РѕРі Рё -1
+        return q.lastInsertId().toInt(); // РІРѕР·РІСЂР°С‰Р°РµРј РЅРѕРІС‹Р№ id
     }
 
-    q.prepare("UPDATE Files SET size=:s, modified=:m, line_count=:lc WHERE id=:id"); // иначе — UPDATE
+    q.prepare("UPDATE Files SET size=:s, modified=:m, line_count=:lc WHERE id=:id"); // РёРЅР°С‡Рµ вЂ” UPDATE
     q.bindValue(":s", size);
     q.bindValue(":m", modified.toString(Qt::ISODate));
     q.bindValue(":lc", lineCount);
     q.bindValue(":id", id);
-    execWarn(q); // обновляем
-    return id; // возвращаем существующий id
+    execWarn(q); // РѕР±РЅРѕРІР»СЏРµРј
+    return id; // РІРѕР·РІСЂР°С‰Р°РµРј СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ id
 }
 
 int DBManager::upsertWord(const QString& wordLower, int addOccurrences) {
-    int id = selectId("Words", "word", wordLower); // ищем слово в нижнем регистре
+    int id = selectId("Words", "word", wordLower); // РёС‰РµРј СЃР»РѕРІРѕ РІ РЅРёР¶РЅРµРј СЂРµРіРёСЃС‚СЂРµ
     QSqlQuery q(m_db);
 
-    if (id < 0) { // вставка нового слова
+    if (id < 0) { // РІСЃС‚Р°РІРєР° РЅРѕРІРѕРіРѕ СЃР»РѕРІР°
         q.prepare("INSERT INTO Words(word,occurrences) VALUES(:w,:occ)");
         q.bindValue(":w", wordLower);
         q.bindValue(":occ", addOccurrences);
         if (!execWarn(q)) return -1;
-        return q.lastInsertId().toInt(); // id нового слова
+        return q.lastInsertId().toInt(); // id РЅРѕРІРѕРіРѕ СЃР»РѕРІР°
     }
 
-    q.prepare("UPDATE Words SET occurrences = occurrences + :occ WHERE id=:id"); // Увеличиваем счётчик
+    q.prepare("UPDATE Words SET occurrences = occurrences + :occ WHERE id=:id"); // РЈРІРµР»РёС‡РёРІР°РµРј СЃС‡С‘С‚С‡РёРє
     q.bindValue(":occ", addOccurrences);
     q.bindValue(":id", id);
     execWarn(q);
-    return id; // возвращаем существующий id
+    return id; // РІРѕР·РІСЂР°С‰Р°РµРј СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ id
 }
 
 bool DBManager::upsertWordIndex(int wordId, int fileId, const QVector<int>& lines) {

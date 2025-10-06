@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <QtWidgets/QMainWindow>
 #include <QDate>
 #include "ui_mainwindow.h"

@@ -28,7 +28,7 @@ private:
     static QString readLine(const QString& path, int lineNo);
     static QString wildcardToLike(QString mask);
 
-    // небольшие общие хелперы для компактности:
+    // РЅРµР±РѕР»СЊС€РёРµ РѕР±С‰РёРµ С…РµР»РїРµСЂС‹ РґР»СЏ РєРѕРјРїР°РєС‚РЅРѕСЃС‚Рё:
     static void appendFilters(QString& sql, const QString& alias,
         const QString& mask, const QDate& from, const QDate& to);
     static void bindFilters(QSqlQuery& q, const QString& mask,

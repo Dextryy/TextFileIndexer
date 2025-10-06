@@ -11,55 +11,55 @@ FileIndexer::FileIndexer(DBManager* db, QObject* parent)
     : QObject(parent), m_db(db) {
 }
 
-// скан директории 
+// СЃРєР°РЅ РґРёСЂРµРєС‚РѕСЂРёРё 
 void FileIndexer::scanDirectory(const QString& dirPath,
     const QStringList& masks,
     const QByteArray& codec)
 {
-    QDirIterator it(dirPath, masks, QDir::Files, QDirIterator::Subdirectories); // идем по директории рекурсивно
+    QDirIterator it(dirPath, masks, QDir::Files, QDirIterator::Subdirectories); // РёРґРµРј РїРѕ РґРёСЂРµРєС‚РѕСЂРёРё СЂРµРєСѓСЂСЃРёРІРЅРѕ
     while (it.hasNext())
-        processFile(it.next(), codec); // обрабатываем каждый файл
+        processFile(it.next(), codec); // РѕР±СЂР°Р±Р°С‚С‹РІР°РµРј РєР°Р¶РґС‹Р№ С„Р°Р№Р»
 }
 
-// обработка одного файла
+// РѕР±СЂР°Р±РѕС‚РєР° РѕРґРЅРѕРіРѕ С„Р°Р№Р»Р°
 void FileIndexer::processFile(const QString& path, const QByteArray& codec) {
-    QFile f(path); // открываем файл
-    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return; // если не открылся — пропускаем
+    QFile f(path); // РѕС‚РєСЂС‹РІР°РµРј С„Р°Р№Р»
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return; // РµСЃР»Рё РЅРµ РѕС‚РєСЂС‹Р»СЃСЏ вЂ” РїСЂРѕРїСѓСЃРєР°РµРј
 
-    QTextStream in(&f); // готовим поток чтения
-    in.setCodec(codec.constData()); // ставим кодировку
+    QTextStream in(&f); // РіРѕС‚РѕРІРёРј РїРѕС‚РѕРє С‡С‚РµРЅРёСЏ
+    in.setCodec(codec.constData()); // СЃС‚Р°РІРёРј РєРѕРґРёСЂРѕРІРєСѓ
 
-    QHash<QString, QVector<int>> word2lines; // слово - номера строк
-    int lineNo = 0; // счётчик строк
+    QHash<QString, QVector<int>> word2lines; // СЃР»РѕРІРѕ - РЅРѕРјРµСЂР° СЃС‚СЂРѕРє
+    int lineNo = 0; // СЃС‡С‘С‚С‡РёРє СЃС‚СЂРѕРє
 
-    while (!in.atEnd()) { // Читаем построчно
-        const QString line = in.readLine(); ++lineNo; // считываем строку и увеличиваем номер
+    while (!in.atEnd()) { // Р§РёС‚Р°РµРј РїРѕСЃС‚СЂРѕС‡РЅРѕ
+        const QString line = in.readLine(); ++lineNo; // СЃС‡РёС‚С‹РІР°РµРј СЃС‚СЂРѕРєСѓ Рё СѓРІРµР»РёС‡РёРІР°РµРј РЅРѕРјРµСЂ
         QString norm = line.toLower();
-        norm.replace(QRegularExpression("[^\\p{L}\\d_\\s]"), " "); // убираем пунктуацию и т.п.
+        norm.replace(QRegularExpression("[^\\p{L}\\d_\\s]"), " "); // СѓР±РёСЂР°РµРј РїСѓРЅРєС‚СѓР°С†РёСЋ Рё С‚.Рї.
 
-        auto it = QRegularExpression( // регулярка: слова из букв/цифр/_
+        auto it = QRegularExpression( // СЂРµРіСѓР»СЏСЂРєР°: СЃР»РѕРІР° РёР· Р±СѓРєРІ/С†РёС„СЂ/_
             "([\\p{L}\\d_]+)", QRegularExpression::UseUnicodePropertiesOption
         ).globalMatch(norm);
 
-        while (it.hasNext()) { // ищем все слова
+        while (it.hasNext()) { // РёС‰РµРј РІСЃРµ СЃР»РѕРІР°
             const QString w = it.next().captured(1);
-            if (w.size() >= 2) // игнорируем слишком короткие
+            if (w.size() >= 2) // РёРіРЅРѕСЂРёСЂСѓРµРј СЃР»РёС€РєРѕРј РєРѕСЂРѕС‚РєРёРµ
                 word2lines[w].append(lineNo);
         }
     }
 
-    QFileInfo fi(f); // собираем данные файла
-    const int fileId = m_db->upsertFile( // вставляем/обновляем запись о файле
+    QFileInfo fi(f); // СЃРѕР±РёСЂР°РµРј РґР°РЅРЅС‹Рµ С„Р°Р№Р»Р°
+    const int fileId = m_db->upsertFile( // РІСЃС‚Р°РІР»СЏРµРј/РѕР±РЅРѕРІР»СЏРµРј Р·Р°РїРёСЃСЊ Рѕ С„Р°Р№Р»Рµ
         path, fi.size(), fi.lastModified(), lineNo
     );
-    if (fileId < 0) return; // если не получилось — выходим
+    if (fileId < 0) return; // РµСЃР»Рё РЅРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ вЂ” РІС‹С…РѕРґРёРј
 
-    for (auto it = word2lines.cbegin(); it != word2lines.cend(); ++it) { // для каждого слова
-        QVector<int> lines = it.value(); // берём список строк
-        std::sort(lines.begin(), lines.end()); // сортируем
-        lines.erase(std::unique(lines.begin(), lines.end()), lines.end()); // убираем дубли
+    for (auto it = word2lines.cbegin(); it != word2lines.cend(); ++it) { // РґР»СЏ РєР°Р¶РґРѕРіРѕ СЃР»РѕРІР°
+        QVector<int> lines = it.value(); // Р±РµСЂС‘Рј СЃРїРёСЃРѕРє СЃС‚СЂРѕРє
+        std::sort(lines.begin(), lines.end()); // СЃРѕСЂС‚РёСЂСѓРµРј
+        lines.erase(std::unique(lines.begin(), lines.end()), lines.end()); // СѓР±РёСЂР°РµРј РґСѓР±Р»Рё
 
-        const int wordId = m_db->upsertWord(it.key(), lines.size()); // обновляем счётчик слова
-        m_db->upsertWordIndex(wordId, fileId, lines); // cохраняем связь слово—файл со строками
+        const int wordId = m_db->upsertWord(it.key(), lines.size()); // РѕР±РЅРѕРІР»СЏРµРј СЃС‡С‘С‚С‡РёРє СЃР»РѕРІР°
+        m_db->upsertWordIndex(wordId, fileId, lines); // cРѕС…СЂР°РЅСЏРµРј СЃРІСЏР·СЊ СЃР»РѕРІРѕвЂ”С„Р°Р№Р» СЃРѕ СЃС‚СЂРѕРєР°РјРё
     }
 }

@@ -13,7 +13,7 @@ public:
     bool open(const QString& dbPath = "index.db");
     bool clearAll();
 
-    // создаёт таблицы при первом запуске
+    // СЃРѕР·РґР°С‘С‚ С‚Р°Р±Р»РёС†С‹ РїСЂРё РїРµСЂРІРѕРј Р·Р°РїСѓСЃРєРµ
     bool ensureSchema();
 
     int  upsertFile(const QString& path, qint64 size,
@@ -26,6 +26,6 @@ public:
 private:
     QSqlDatabase m_db;
 
-    // общий селект id по строковому полю
+    // РѕР±С‰РёР№ СЃРµР»РµРєС‚ id РїРѕ СЃС‚СЂРѕРєРѕРІРѕРјСѓ РїРѕР»СЋ
     int  selectId(const char* table, const char* col, const QString& value) const;
 };
