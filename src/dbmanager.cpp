@@ -3,6 +3,9 @@
 #include <QSqlError>
 #include <QVariant>
 #include <QDebug>
+#include <QCoreApplication>
+#include <QDir>
+#include <QFileInfo>
 
 namespace {
     inline bool execWarn(QSqlQuery& q) {
@@ -21,11 +24,17 @@ DBManager::DBManager(QObject* parent) : QObject(parent) {}
 
 //открытие и подготовка файла БД 
 bool DBManager::open(const QString& dbPath) {
+    QString finalPath = dbPath;
+    QFileInfo fi(dbPath);
+    if (fi.isRelative()) {
+        // создаём путь рядом с исполняемым
+        finalPath = QDir(QCoreApplication::applicationDirPath()).filePath(dbPath);
+    }
     m_db = QSqlDatabase::contains("app") // переиспользуем подключение "app", если уже есть
         ? QSqlDatabase::database("app")
         : QSqlDatabase::addDatabase("QSQLITE", "app"); // иначе создаём новое подключение SQLite
 
-    m_db.setDatabaseName(dbPath); // файл БД (создастся при первом открытии)
+    m_db.setDatabaseName(finalPath); // файл БД (создастся при первом открытии)
     if (!m_db.open()) { qWarning() << "SQLite open error:" << m_db.lastError(); return false; }
 
     QSqlQuery pragma(m_db); // запрос для PRAGMA
