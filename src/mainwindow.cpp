@@ -154,7 +154,7 @@ void MainWindow::on_pushButtonSearch_clicked() {
 
     
     const QString mask = [this]() -> QString { //маска имени файла
-        if (auto* e = this->findChild<QLineEdit*>("lineEditFilenameFilter"))
+        if (auto* e = this->findChild<QLineEdit*>("lineEditFilter"))
             return e->text();
         return {};
         }();
