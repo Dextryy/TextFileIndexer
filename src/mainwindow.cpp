@@ -15,6 +15,7 @@
 #include <QLabel>
 #include <QRegularExpression>
 #include <QTextDocument>
+#include <QThread>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), m_db(this)
@@ -26,9 +27,55 @@ MainWindow::MainWindow(QWidget* parent)
 
     ui.tableWidgetResults->setContextMenuPolicy(Qt::CustomContextMenu); //меню ПКМ
     statusBar()->showMessage(QString::fromUtf8("Готово"));
+
+    // создаём поток
+    m_thread = new QThread(this);
+    m_dbWorker = new DBManager();
+    m_dbWorker->moveToThread(m_thread);
+    connect(m_thread, &QThread::started, m_dbWorker, [this]() {
+        m_dbWorker->open("index.db"); // открываем БД именно в потоке
+        });
+
+    // индексатор
+    m_indexer = new FileIndexer(m_dbWorker);
+    m_indexer->moveToThread(m_thread);
+
+    connect(m_thread, &QThread::finished, m_indexer, &QObject::deleteLater);
+    connect(m_thread, &QThread::finished, m_dbWorker, &QObject::deleteLater);
+
+    // сигнал запуска сканирования
+    connect(this, &MainWindow::startScan, m_indexer,
+        [this](const QString& dir) {
+            m_indexer->scanDirectory(dir, { "*.txt","*.log","*.csv" }, "UTF-8");
+        });
+
+    // прогресс — обратно в GUI
+    connect(m_indexer, &FileIndexer::scanStarted, this, [this](int total) {
+        ui.progressBar->setRange(0, total);
+        ui.progressBar->setValue(0);
+        ui.progressBar->setVisible(true);
+        }, Qt::QueuedConnection);
+
+    connect(m_indexer, &FileIndexer::progressChanged, this, [this](int current, int total) {
+        ui.progressBar->setValue(current);
+        const int percent = (total > 0) ? (current * 100 / total) : 0;
+        ui.progressBar->setFormat(QString("%1%").arg(percent));
+        }, Qt::QueuedConnection);
+
+    connect(m_indexer, &FileIndexer::scanFinished, this, [this]() {
+        ui.progressBar->setVisible(false);
+        statusBar()->showMessage(QString::fromUtf8("Индексирование завершено"));
+        }, Qt::QueuedConnection);
+
+    m_thread->start();
 }
 
-MainWindow::~MainWindow() {}
+MainWindow::~MainWindow() {
+    if (m_thread) {
+        m_thread->quit();
+        m_thread->wait();
+    }
+}
 
 //настройка таблицы результата
 void MainWindow::setupResultsTable() {
@@ -79,21 +126,19 @@ void MainWindow::setHighlightedText(QTableWidget* table, int row, int col,
 
 //выбор папки по кнопке Обзор
 void MainWindow::on_pushButtonBrowse_clicked() {
-    const QString dir = QFileDialog::getExistingDirectory(
-        this, QString::fromUtf8("Выберите папку для индексации"));
+    const QString dir = QFileDialog::getExistingDirectory(this, tr("Выберите папку для индексации"));
     if (!dir.isEmpty())
         ui.lineEditDirectory->setText(dir);
 }
 
 //запуск индексации
 void MainWindow::on_pushButtonScan_clicked() {
-    const QString dir = ui.lineEditDirectory->text(); //путь из поля
+    const QString dir = ui.lineEditDirectory->text();
     if (dir.isEmpty()) {
         statusBar()->showMessage(QString::fromUtf8("Укажите директорию для сканирования"));
         return;
     }
-    FileIndexer(&m_db).scanDirectory(dir);   // временный FileIndexer, скан всей папки
-    statusBar()->showMessage(QString::fromUtf8("Индексирование завершено"));
+    emit startScan(dir); // ← правильно: запускаем асинхронно в воркере
 }
 
 //запуск поиска

@@ -17,4 +17,11 @@ private:
     DBManager* m_db;
 
     void processFile(const QString& path, const QByteArray& codec);
+
+signals:
+    void scanStarted(int totalFiles);           // начало сканирования
+    void progressChanged(int current, int total); // обновление прогресса
+    void scanFinished();                        // завершение
+
 };
+

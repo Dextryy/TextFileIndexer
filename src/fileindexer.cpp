@@ -16,9 +16,27 @@ void FileIndexer::scanDirectory(const QString& dirPath,
     const QStringList& masks,
     const QByteArray& codec)
 {
-    QDirIterator it(dirPath, masks, QDir::Files, QDirIterator::Subdirectories); // идем по директории рекурсивно
-    while (it.hasNext())
-        processFile(it.next(), codec); // обрабатываем каждый файл
+    // Собираем список всех файлов для точного расчёта прогресса
+    QStringList allFiles;
+    QDirIterator counter(dirPath, masks, QDir::Files, QDirIterator::Subdirectories);
+    while (counter.hasNext())
+        allFiles << counter.next();
+
+    int total = allFiles.size();
+    if (total == 0) {
+        emit scanFinished();
+        return;
+    }
+
+    emit scanStarted(total); // сообщаем GUI, сколько всего файлов
+
+    int current = 0;
+    for (const QString& file : allFiles) {
+        processFile(file, codec);
+        emit progressChanged(++current, total); // обновляем прогресс
+    }
+
+    emit scanFinished(); // сообщаем о завершении
 }
 
 // обработка одного файла

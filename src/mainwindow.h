@@ -1,6 +1,7 @@
 #pragma once
 #include <QtWidgets/QMainWindow>
 #include <QDate>
+#include <QThread>  
 #include "ui_mainwindow.h"
 #include "dbmanager.h"
 #include "fileindexer.h"
@@ -20,9 +21,15 @@ private slots:
     void on_actionClearIndex_triggered();
     void on_actionExit_triggered();
 
+signals:
+    void startScan(const QString& dir);
+
 private:
-    Ui::MainWindowClass ui;  // ? объект (VS шаблон)
-    DBManager           m_db;
+    Ui::MainWindowClass ui;
+    DBManager m_db;             // GUI‑подключение (поиск)
+    DBManager* m_dbWorker = nullptr; // добавили DB в потоке индексации
+    FileIndexer* m_indexer = nullptr;
+    QThread* m_thread = nullptr;
 
     void setupResultsTable();
     void fillResults(const QVector<SearchResult>& rows,
