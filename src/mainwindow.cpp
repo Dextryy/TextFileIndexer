@@ -179,16 +179,61 @@ void MainWindow::fillResults(const QVector<SearchResult>& rows,
     auto* t = ui.tableWidgetResults;
     t->setRowCount(rows.size()); 
 
-    for (int i = 0; i < rows.size(); ++i) { //для каждой найденой записи 
-        const auto& r = rows[i]; 
-        t->setItem(i, 0, new QTableWidgetItem(r.file)); // вывод файла
-        t->setItem(i, 1, new QTableWidgetItem(QString::number(r.line))); // вывод строки 
-        setHighlightedText(t, i, 2, r.fragment, query,
-            caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive); // текст строки с подсветкой 
-        t->setItem(i, 3, new QTableWidgetItem(r.modified)); // дата изменения
-        t->setItem(i, 4, new QTableWidgetItem(QLocale::system().formattedDataSize(r.size))); //размер 
+    const bool isRegex = ui.checkBoxRegex->isChecked();
+    QRegularExpression::PatternOptions opts = QRegularExpression::UseUnicodePropertiesOption;
+    if (!caseSensitive) opts |= QRegularExpression::CaseInsensitiveOption;
+
+    const QRegularExpression re(
+        isRegex ? query : QRegularExpression::escape(query),
+        opts
+    );
+    auto makeHtml = [&re](const QString& text) -> QString {
+        if (text.isEmpty() || !re.isValid())
+            return text.toHtmlEscaped();
+
+        QString html; html.reserve(text.size() + 64);
+        int pos = 0;
+        auto it = re.globalMatch(text);
+
+        while (it.hasNext()) {
+            const QRegularExpressionMatch m = it.next();
+            const int start = m.capturedStart();
+            const int len = m.capturedLength();
+            if (start < 0 || len <= 0) continue; // защита от нулевой длины
+
+            // обычный фрагмент
+            html += text.mid(pos, start - pos).toHtmlEscaped();
+            // совпадение
+            html += "<span style='background-color: yellow; color: black;'><b>";
+            html += text.mid(start, len).toHtmlEscaped();
+            html += "</b></span>";
+
+            pos = start + len;
+        }
+        // хвост
+        html += text.mid(pos).toHtmlEscaped();
+        return html;
+        };
+
+    for (int i = 0; i < rows.size(); ++i) {
+        const auto& r = rows[i];
+
+        // файл, строки, дата, размер
+        t->setItem(i, 0, new QTableWidgetItem(r.file));
+        t->setItem(i, 1, new QTableWidgetItem(QString::number(r.line)));
+        t->setItem(i, 3, new QTableWidgetItem(r.modified));
+        t->setItem(i, 4, new QTableWidgetItem(QLocale::system().formattedDataSize(r.size)));
+
+        // фрагмент с подсветкой
+        auto* lbl = new QLabel;
+        lbl->setTextFormat(Qt::RichText);
+        lbl->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        lbl->setWordWrap(true);
+        lbl->setText(makeHtml(r.fragment));
+        t->setCellWidget(i, 2, lbl);
     }
-    t->resizeColumnsToContents(); // подгонка ширины колонок
+
+    t->resizeColumnsToContents();
 }
 
 // контекстное меню ПКМ 
