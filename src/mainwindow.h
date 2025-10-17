@@ -31,6 +31,7 @@ private:
     FileIndexer* m_indexer = nullptr;
     QThread* m_thread = nullptr;
 
+    void setupShortcuts();
     void setupResultsTable();
     void fillResults(const QVector<SearchResult>& rows,
         const QString& query, bool caseSensitive);

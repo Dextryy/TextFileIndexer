@@ -16,12 +16,14 @@
 #include <QRegularExpression>
 #include <QTextDocument>
 #include <QThread>
+#include <QShortcut>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), m_db(this)
 {
     ui.setupUi(this);
     setupResultsTable();
+    setupShortcuts();
 
     m_db.open("index.db");
 
@@ -234,3 +236,21 @@ void MainWindow::on_actionClearIndex_triggered() { // очитска
 }
 
 void MainWindow::on_actionExit_triggered() { close(); } // выход
+
+void MainWindow::setupShortcuts() {
+    // Ctrl+O: Обзор
+    auto sOpen = new QShortcut(QKeySequence::Open, this);
+    connect(sOpen, &QShortcut::activated, this, &MainWindow::on_pushButtonBrowse_clicked);
+
+    // F5: Сканировать
+    auto sScan = new QShortcut(QKeySequence::Refresh, this);
+    connect(sScan, &QShortcut::activated, this, &MainWindow::on_pushButtonScan_clicked);
+
+    // Ctrl+Shift+Delete: Очистить индекс
+    auto sClear = new QShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+Delete")), this);
+    connect(sClear, &QShortcut::activated, this, &MainWindow::on_actionClearIndex_triggered);
+
+    // Ctrl+Q: Выход
+    auto sQuit = new QShortcut(QKeySequence::Quit, this);
+    connect(sQuit, &QShortcut::activated, this, &MainWindow::on_actionExit_triggered);
+}
