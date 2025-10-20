@@ -296,6 +296,6 @@ void MainWindow::setupShortcuts() {
     connect(sClear, &QShortcut::activated, this, &MainWindow::on_actionClearIndex_triggered);
 
     // Ctrl+Q: Выход
-    auto sQuit = new QShortcut(QKeySequence::Quit, this);
+    auto sQuit = new QShortcut(QKeySequence(QStringLiteral("Ctrl+Q")), this);
     connect(sQuit, &QShortcut::activated, this, &MainWindow::on_actionExit_triggered);
 }
